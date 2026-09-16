@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+.venv/
+venv/
+
+# Pastas locais de apoio (nao devem ir para o GitHub)
+Exemplos de RC/
+Referência Visual/
+Refer?ncia Visual/
