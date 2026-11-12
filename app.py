@@ -140,34 +140,44 @@ html { scrollbar-color: #c9ced6 transparent; }
 .stApp .rc-title { font-size: 1.75rem; font-weight: 700; line-height: 1.15; margin: 0 0 0.45rem 0; }
 .rc-subtitle { font-size: 0.95rem; color: var(--muted); max-width: 58ch; margin: 0; line-height: 1.5; }
 .rc-caption { font-size: 0.8rem; color: var(--muted); margin: 0.7rem 0 0 0; line-height: 1.5; }
-.rc-caption-upload { margin-bottom: 1.7rem; }
 .rc-spacer { height: 1.25rem; }
 
 /* --- upload --------------------------------------------------------- */
-[data-testid="stFileUploaderDropzone"] {
+.stApp [data-testid="stFileUploaderDropzone"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 1.5px dashed var(--line-2);
     border-radius: 12px;
-    background: var(--paper);
-    padding: 1.5rem 1.25rem;
+    background: var(--ground);
+    padding: 1.1rem 1.15rem;
     transition: border-color 0.15s ease, background 0.15s ease;
 }
-[data-testid="stFileUploaderDropzone"]:hover { border-color: var(--accent); background: #fafcff; }
-[data-testid="stFileUploaderDropzone"] > *:last-child { display: none; }
-[data-testid="stFileUploaderDropzone"] button {
-    background: var(--ink) !important;
-    color: #ffffff !important;
-    border: 1px solid var(--ink) !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    padding: 0.45rem 0.95rem !important;
+.stApp [data-testid="stFileUploaderDropzone"]:hover { border-color: var(--accent); background: #fbfcff; }
+.stApp [data-testid="stFileUploaderDropzone"] button {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    background: var(--paper) !important;
+    border: 1px solid var(--line-2) !important;
+    box-shadow: 0 1px 2px rgba(18, 19, 23, 0.05) !important;
 }
-[data-testid="stFileUploaderDropzone"] button:hover { background: #2c2f35 !important; border-color: #2c2f35 !important; }
-[data-testid="stFileUploaderDropzone"] button p { display: none; }
-[data-testid="stFileUploaderDropzone"] button::after {
-    content: "Selecionar o PDF da RC";
-    font-size: 0.85rem;
-    letter-spacing: 0;
+.stApp [data-testid="stFileUploaderDropzone"] button:hover { border-color: var(--accent) !important; }
+.stApp [data-testid="stFileUploaderDropzone"] button p { display: none; }
+.stApp [data-testid="stFileUploaderDropzone"] button [data-testid="stIconMaterial"] {
+    font-size: 24px;
+    color: var(--accent);
 }
+.stApp [data-testid="stFileUploaderDropzoneInstructions"] { display: none; }
+.stApp [data-testid="stFileUploaderDropzone"]:has(> div:has(> span)) {
+    border-color: var(--accent);
+    background: var(--paper);
+    box-shadow: inset 0 0 0 2px var(--accent);
+}
+.stApp [data-testid="stFileUploaderDropzone"] > div:has(> span) { background: transparent; }
+.stApp [data-testid="stFileUploaderDropzone"] > div:has(> span) > span { font-size: 0; }
 
 /* --- settings ------------------------------------------------------- */
 [data-testid="stExpander"] {
@@ -583,11 +593,6 @@ if report is None:
         type=["pdf"],
         label_visibility="collapsed",
         key=f"rc_pdf_{st.session_state.get('upload_seq', 0)}",
-    )
-    st.markdown(
-        '<div class="rc-caption rc-caption-upload">Arraste o PDF da RC para a área acima ou clique para selecionar. '
-        "Somente arquivos .pdf exportados do ERP.</div>",
-        unsafe_allow_html=True,
     )
 
     saved_root = cl.get_saved_root()

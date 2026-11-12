@@ -75,8 +75,8 @@ python -m streamlit run app.py --server.headless=true --server.address=127.0.0.1
    (ex.: `\\servidor\Engenharia\Projetos Obras` ou um drive mapeado). Clique em
    **Testar acesso à pasta**. O caminho fica salvo nesta máquina e nas próximas aberturas já vem
    preenchido — não precisa digitar de novo.
-3. Na área pontilhada, **arraste o PDF da RC** exportado do ERP ou clique em
-   **Selecionar o PDF da RC**.
+3. Na área pontilhada, **arraste o PDF da RC** exportado do ERP ou clique no ícone de upload
+   (a área inteira é um alvo de arrastar e soltar).
 4. Clique em **Processar RC**.
 5. Acompanhe as três etapas na tela:
    - Leitura do PDF da RC;
