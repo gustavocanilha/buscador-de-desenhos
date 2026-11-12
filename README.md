@@ -75,28 +75,35 @@ python -m streamlit run app.py --server.headless=true --server.address=127.0.0.1
    (ex.: `\\servidor\Engenharia\Projetos Obras` ou um drive mapeado). Clique em
    **Testar acesso à pasta**. O caminho fica salvo nesta máquina e nas próximas aberturas já vem
    preenchido — não precisa digitar de novo.
-3. Na área pontilhada, **arraste o PDF da RC** exportado do ERP ou clique para selecionar.
+3. Na área pontilhada, **arraste o PDF da RC** exportado do ERP ou clique em
+   **Selecionar o PDF da RC**.
 4. Clique em **Processar RC**.
 5. Acompanhe as três etapas na tela:
    - Leitura do PDF da RC;
    - Busca no drive (mostra quantos arquivos foram catalogados);
    - Cópia dos desenhos para a Área de Trabalho.
-6. Veja o resultado:
-   - **Todos os códigos foram localizados nos dois formatos**: nada a fazer;
-   - **Código(s) sem desenho localizado**: a lista aparece para copiar e tratar manualmente;
-   - **Código(s) incompletos**: existe somente PDF ou somente DXF; o que falta é listado.
-7. Clique em **Abrir pasta no Explorer** para ir direto à pasta criada
-   (`Área de Trabalho\Desenhos [RC {número}]`) e anexe os arquivos na RC do ERP.
-8. Use **Nova análise** para limpar a tela e processar outra RC.
+6. Ao final, a tela é substituída pelo **resultado da RC**:
+   - no topo, o resumo (`RC 1234 processada`, com a contagem de códigos completos, pendências,
+     arquivos copiados e tempo gasto);
+   - **Códigos para tratar manualmente**: os códigos sem PDF e/ou sem DXF, com um botão
+     **Baixar lista (.txt)** para anexar ao e-mail para a Engenharia;
+   - a tabela **Arquivos por código**, com uma linha por código da RC e o PDF e o DXF lado a
+     lado (arquivo, data de modificação e tamanho);
+   - **Abrir pasta no Explorer**, que abre direto a pasta criada na Área de Trabalho
+     (`Área de Trabalho\Desenhos [RC {número}]`) para anexar os arquivos na RC do ERP.
+7. Use **Nova análise** (no rodapé da tela de resultado) para limpar a tela e processar outra RC.
 
-A tabela **Arquivos selecionados** mostra, para cada código, o arquivo escolhido, a data de
-modificação, o tamanho e o status:
+A coluna **Situação** da tabela resume a situação de cada código:
 
-| Status | Significado |
+| Situação | Significado |
 |---|---|
-| `copiado` | Arquivo copiado para a Área de Trabalho |
-| `ignorado` | Já existia no destino e a sobrescrita estava desligada |
-| `erro` | Falha de leitura/cópia (arquivo sumiu, permissão, rede) |
+| `completo` | Código localizado nos dois formatos (PDF e DXF) |
+| `falta formato` | Código localizado em apenas um dos formatos |
+| `não localizado` | Código não encontrado no servidor |
+| `erro na cópia` | Arquivo encontrado, mas a cópia para a Área de Trabalho falhou |
+
+Dentro da célula do arquivo, `já existia` indica que o arquivo já estava na pasta de destino e
+foi mantido (a sobrescrita estava desligada); `falha ao copiar` indica erro de leitura ou escrita.
 
 ---
 
@@ -206,7 +213,7 @@ minutos.
 
 ```
 .
-├── app.py               # Interface Streamlit (tema preto e branco, favicon próprio)
+├── app.py               # Interface Streamlit (preto e branco com acento azul, favicon próprio)
 ├── core_logic.py        # Leitura da RC, varredura do servidor, seleção da versão recente e cópia
 ├── launcher.py          # Ponto de entrada do executável gerado pelo PyInstaller
 ├── requirements.txt     # Dependências com versões limitadas

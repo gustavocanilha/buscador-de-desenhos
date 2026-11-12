@@ -11,6 +11,16 @@ import streamlit as st
 
 import core_logic as cl
 
+FORMATS = ((".pdf", "PDF"), (".dxf", "DXF"))
+STEPS = (
+    (0.06, "Lendo o PDF da Requisição de Compra"),
+    (0.16, "Verificando o acesso à pasta de origem"),
+    (0.21, "Varrendo os desenhos no servidor"),
+    (0.71, "Selecionando as versões mais recentes"),
+    (0.81, "Copiando os desenhos para a Área de Trabalho"),
+    (1.01, "Concluído"),
+)
+
 
 def build_page_icon(size: int = 256) -> Image.Image:
     scale = 4
@@ -86,130 +96,247 @@ st.set_page_config(
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root {
+    --paper: #ffffff;
+    --ground: #f7f8fa;
+    --ink: #121317;
+    --ink-2: #3f434a;
+    --muted: #64696f;
+    --line: #e6e8ec;
+    --line-2: #d5d9df;
+    --accent: #0b57d0;
+    --accent-2: #0a49ab;
+    --ok-ink: #17663f;
+    --ok-bg: #edf7f1;
+    --ok-line: #cfe6da;
+    --warn-ink: #7a5606;
+    --warn-bg: #fdf6e5;
+    --warn-line: #ecdcb4;
+    --bad-ink: #9c211b;
+    --bad-bg: #fdf1f0;
+    --bad-line: #f1cfcb;
+}
 
 html, body, [class*="css"], .stApp, button, input, textarea, select {
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
 }
-.stApp { background: #ffffff; color: #111111; }
+.stApp { background: var(--paper); color: var(--ink); }
 #MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; height: 0; }
-.block-container { max-width: 860px; padding-top: 3rem; padding-bottom: 4rem; }
-h1, h2, h3 { color: #111111; letter-spacing: -0.02em; }
-hr { border-color: #e5e5e5; }
-
-.rc-title { font-size: 1.55rem; font-weight: 700; margin: 0 0 0.35rem 0; }
-.rc-subtitle { font-size: 0.85rem; color: #6b6b6b; margin: 0 0 1.6rem 0; }
-
-.rc-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #111111;
-    margin: 0.2rem 0 0.6rem 0;
+.block-container { width: 100%; max-width: __CONTAINER_WIDTH__; min-width: 0; padding-top: 3rem; padding-bottom: 3.5rem; }
+.stApp h1, .stApp h2, .stApp h3 {
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    font-family: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
 }
-.rc-caption { font-size: 0.8rem; color: #6b6b6b; }
+hr { border-color: var(--line); margin: 2rem 0; }
 
-div[data-testid="stFileUploader"] section,
-div[data-testid="stFileUploaderDropzone"] {
-    border: 1.5px dashed #111111;
-    border-radius: 10px;
-    background: #ffffff;
-    padding: 1.35rem 1.1rem;
-    transition: background 0.15s ease;
+::selection { background: rgba(11, 87, 208, 0.18); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input, textarea { caret-color: var(--accent); }
+html { scrollbar-color: #c9ced6 transparent; }
+
+/* --- masthead ------------------------------------------------------- */
+.rc-masthead { margin: 0 0 2.1rem 0; }
+.stApp .rc-title { font-size: 1.75rem; font-weight: 700; line-height: 1.15; margin: 0 0 0.45rem 0; }
+.rc-subtitle { font-size: 0.95rem; color: var(--muted); max-width: 58ch; margin: 0; line-height: 1.5; }
+.rc-caption { font-size: 0.8rem; color: var(--muted); margin: 0.7rem 0 0 0; line-height: 1.5; }
+.rc-caption-upload { margin-bottom: 1.7rem; }
+.rc-spacer { height: 1.25rem; }
+
+/* --- upload --------------------------------------------------------- */
+[data-testid="stFileUploaderDropzone"] {
+    border: 1.5px dashed var(--line-2);
+    border-radius: 12px;
+    background: var(--paper);
+    padding: 1.5rem 1.25rem;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
-div[data-testid="stFileUploaderDropzone"]:hover { background: #fafafa; }
-div[data-testid="stFileUploaderDropzone"] button,
-div[data-testid="stFileUploader"] section button {
-    background: #111111 !important;
+[data-testid="stFileUploaderDropzone"]:hover { border-color: var(--accent); background: #fafcff; }
+[data-testid="stFileUploaderDropzone"] > *:last-child { display: none; }
+[data-testid="stFileUploaderDropzone"] button {
+    background: var(--ink) !important;
     color: #ffffff !important;
-    border: 1px solid #111111 !important;
-    border-radius: 6px !important;
+    border: 1px solid var(--ink) !important;
+    border-radius: 8px !important;
     font-weight: 600 !important;
+    padding: 0.45rem 0.95rem !important;
 }
-div[data-testid="stFileUploaderDropzone"] small,
-div[data-testid="stFileUploaderDropzoneInstructions"] span { color: #6b6b6b !important; }
-
-div[data-testid="stExpander"] {
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-    background: #ffffff;
+[data-testid="stFileUploaderDropzone"] button:hover { background: #2c2f35 !important; border-color: #2c2f35 !important; }
+[data-testid="stFileUploaderDropzone"] button p { display: none; }
+[data-testid="stFileUploaderDropzone"] button::after {
+    content: "Selecionar o PDF da RC";
+    font-size: 0.85rem;
+    letter-spacing: 0;
 }
-div[data-testid="stExpander"] summary { font-size: 0.82rem; font-weight: 600; color: #111111; }
 
+/* --- settings ------------------------------------------------------- */
+[data-testid="stExpander"] {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--paper);
+}
+[data-testid="stExpander"] summary { font-size: 0.87rem; font-weight: 600; color: var(--ink); }
+[data-testid="stExpander"] summary:hover { color: var(--accent); }
+[data-testid="stTextInput"] input {
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    font-size: 0.86rem;
+    padding: 0.48rem 0.65rem;
+}
+[data-testid="stTextInput"] input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.14);
+    outline: none;
+}
+[data-testid="stCheckbox"] label { font-size: 0.86rem; color: var(--ink-2); }
+[data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+[data-testid="stAlert"] { border-radius: 10px; font-size: 0.85rem; }
+
+/* --- buttons -------------------------------------------------------- */
 .stButton > button, .stDownloadButton > button {
-    width: 100%;
     border-radius: 8px;
     font-weight: 600;
-    padding: 0.62rem 1rem;
-    transition: opacity 0.15s ease;
+    font-size: 0.87rem;
+    padding: 0.55rem 1rem;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .stButton > button[kind="primary"], .stDownloadButton > button[kind="primary"] {
-    background: #111111;
+    background: var(--accent);
     color: #ffffff;
-    border: 1px solid #111111;
+    border: 1px solid var(--accent);
 }
 .stButton > button[kind="primary"]:hover, .stDownloadButton > button[kind="primary"]:hover {
-    background: #000000;
+    background: var(--accent-2);
+    border-color: var(--accent-2);
     color: #ffffff;
-    opacity: 0.92;
 }
-.stButton > button[kind="secondary"] {
-    background: #ffffff;
-    color: #111111;
-    border: 1px solid #111111;
+.stButton > button[kind="secondary"], .stDownloadButton > button[kind="secondary"] {
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line-2);
+}
+.stButton > button[kind="secondary"]:hover, .stDownloadButton > button[kind="secondary"]:hover {
+    background: var(--ground);
+    border-color: #b9bec6;
+    color: var(--ink);
 }
 .stButton > button:disabled {
-    background: #ededed !important;
-    color: #9a9a9a !important;
-    border: 1px solid #ededed !important;
+    background: #eceef1 !important;
+    color: #9aa0a8 !important;
+    border-color: #eceef1 !important;
+}
+.stButton > button:focus-visible, .stDownloadButton > button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
-div[data-testid="stTextInput"] input {
-    border: 1px solid #d9d9d9;
-    border-radius: 6px;
-    font-size: 0.85rem;
-}
-div[data-testid="stTextInput"] input:focus { border-color: #111111; box-shadow: none; }
+/* --- progress ------------------------------------------------------- */
+[data-testid="stExpanderIconSpinner"] { color: var(--accent); }
+[data-testid="stExpanderIconError"] { color: var(--bad-ink); }
+[data-testid="stExpanderIconCheck"] { color: var(--ok-ink); }
 
-div[data-testid="stStatusWidget"] { border: 1px solid #e5e5e5; border-radius: 10px; }
-
-.rc-banner {
-    border-radius: 10px;
-    padding: 0.9rem 1.1rem;
-    font-size: 0.86rem;
-    line-height: 1.45;
-    margin: 0.4rem 0 1rem 0;
+/* --- result --------------------------------------------------------- */
+.rc-verdict {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin: 0 0 1.1rem 0;
+    background: var(--paper);
 }
-.rc-banner-ok { background: #f4f4f4; border: 1px solid #111111; color: #111111; }
-.rc-banner-warn { background: #fdf8d8; border: 1px solid #e6d97a; color: #4a4210; }
-.rc-banner-error { background: #ffffff; border: 1.5px solid #111111; color: #111111; }
+.rc-verdict-ok { background: var(--ok-bg); border-color: var(--ok-line); }
+.rc-verdict-warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.rc-verdict-bad { background: var(--bad-bg); border-color: var(--bad-line); }
+.stApp .rc-verdict-title { font-size: 1.22rem; font-weight: 700; margin: 0 0 0.35rem 0; line-height: 1.25; }
+.rc-verdict-body { font-size: 0.92rem; color: var(--ink); margin: 0 0 0.3rem 0; line-height: 1.5; }
+.rc-verdict-meta { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.5; }
 
-.rc-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.7rem; margin: 0.6rem 0 1.4rem 0; }
-.rc-metric { border: 1px solid #d9d9d9; border-radius: 10px; padding: 0.85rem 0.9rem; background: #ffffff; }
-.rc-metric-value { font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
-.rc-metric-label {
-    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em;
-    text-transform: uppercase; color: #6b6b6b; margin-top: 0.35rem;
-}
-
-.rc-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.3rem; }
-.rc-table th {
-    text-align: left; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.14em;
-    text-transform: uppercase; color: #111111; background: #f4f4f4;
-    padding: 0.55rem 0.7rem; border-bottom: 1px solid #d9d9d9;
-}
-.rc-table td { padding: 0.55rem 0.7rem; border-bottom: 1px solid #ededed; color: #111111; }
-.rc-table td.mono { font-family: 'Consolas', 'Courier New', monospace; font-size: 0.76rem; }
 .rc-chip {
-    display: inline-block; font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em;
-    text-transform: uppercase; padding: 0.16rem 0.5rem; border-radius: 999px;
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
 }
-.rc-chip-copiado { background: #111111; color: #ffffff; }
-.rc-chip-ignorado { background: #ffffff; color: #6b6b6b; border: 1px dashed #b5b5b5; }
-.rc-chip-erro { background: #ffffff; color: #111111; border: 1px solid #111111; }
+.rc-chip-ok { background: var(--ok-bg); color: var(--ok-ink); }
+.rc-chip-warn { background: var(--warn-bg); color: var(--warn-ink); }
+.rc-chip-bad { background: var(--bad-bg); color: var(--bad-ink); }
 
-.rc-footer { font-size: 0.72rem; color: #9a9a9a; margin-top: 2.4rem; }
+.rc-pending { margin: 1.6rem 0 0.5rem 0; }
+.rc-pending-title { font-size: 0.86rem; font-weight: 600; color: var(--ink); margin: 0 0 0.5rem 0; }
+.rc-pending-list { list-style: none; margin: 0; padding: 0; }
+.rc-pending-list li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    font-size: 0.85rem;
+    color: var(--ink);
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--line);
+}
+.rc-pending-list li:last-child { border-bottom: none; }
+.rc-pending-list code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.8rem;
+    color: var(--ink);
+    background: var(--ground);
+    border: 0;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+.rc-pending-note { font-size: 0.82rem; }
+.rc-pending-warn { color: var(--warn-ink); }
+.rc-pending-bad { color: var(--bad-ink); }
+
+.rc-table-wrap { overflow-x: auto; margin-top: 1.8rem; }
+.rc-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.rc-table caption {
+    caption-side: top;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 0 0.6rem 0;
+}
+.rc-table th {
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--ground);
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--line-2);
+    white-space: nowrap;
+}
+.rc-table td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rc-table td.mono { font-family: Consolas, "Courier New", monospace; font-size: 0.78rem; white-space: nowrap; }
+.rc-table td.rc-cell { width: 31%; }
+.rc-table td.rc-cell-missing { color: var(--muted); font-size: 0.8rem; }
+.rc-file { font-family: Consolas, "Courier New", monospace; font-size: 0.76rem; overflow-wrap: anywhere; color: var(--ink); }
+.rc-file-meta { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
+.rc-flag-bad { color: var(--bad-ink); }
+
+.rc-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 2.2rem 0 1rem 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+.rc-footer-item { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.rc-footer-label { font-weight: 600; letter-spacing: 0.04em; }
+.rc-footer-path { font-family: Consolas, "Courier New", monospace; font-size: 0.76rem; color: var(--ink-2); overflow-wrap: anywhere; }
 </style>
 """
 
@@ -218,286 +345,362 @@ def escape_html(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def step_status(steps: list[tuple[str, str]], current: int) -> str:
-    icons = {"done": "✓", "active": "●", "pending": "○"}
-    rows = []
-    for index, (label, state) in enumerate(steps):
-        style = "color:#111111;font-weight:600;" if state != "pending" else "color:#b5b5b5;"
-        rows.append(
-            f'<div style="{style}font-size:0.82rem;margin:0.18rem 0;">'
-            f'{icons[state]} &nbsp;{escape_html(label)}</div>'
-        )
-    return "".join(rows)
+def format_seconds(value: float) -> str:
+    return f"{value:.1f}".replace(".", ",") + " s"
 
 
-def render_metrics(report: cl.RCReport) -> None:
-    metrics = [
-        (str(len(report.codes)), "Códigos lidos"),
-        (str(report.found_file_count), "Desenhos encontrados"),
-        (str(len(report.missing)), "Não localizados"),
-        (str(len(report.incomplete)), "Incompletos"),
-        (str(len(report.copied)), "Arquivos copiados"),
-    ]
-    cards = "".join(
-        f'<div class="rc-metric"><div class="rc-metric-value">{value}</div>'
-        f'<div class="rc-metric-label">{label}</div></div>'
-        for value, label in metrics
-    )
-    st.markdown(f'<div class="rc-metrics">{cards}</div>', unsafe_allow_html=True)
+def format_count(value: int) -> str:
+    return f"{value:,}".replace(",", ".")
 
 
-def render_results(report: cl.RCReport) -> None:
-    incomplete = report.incomplete
-    missing_extensions = {
-        cl.extension_label(extension)
-        for extensions in incomplete.values()
-        for extension in extensions
+def plural(count: int, singular: str, many: str) -> str:
+    return f"{format_count(count)} {singular if count == 1 else many}"
+
+
+def step_label(fraction: float) -> str:
+    label = STEPS[0][1]
+    for threshold, text in STEPS:
+        if fraction <= threshold:
+            label = text
+            break
+    return label
+
+
+def collect_rows(report: cl.RCReport) -> list[dict]:
+    """Uma linha por código da RC, com os dois formatos lado a lado."""
+    copy_status = {
+        (result.code, result.extension): result.status for result in report.results
     }
+    rows: list[dict] = []
+    for code in report.codes:
+        found = report.matches.get(code, {})
+        cells = []
+        failed = False
+        for extension, _label in FORMATS:
+            match = found.get(extension)
+            status = copy_status.get((code, extension))
+            failed = failed or status == "erro"
+            cells.append({"match": match, "status": status})
+        if not found:
+            situation = "nao_localizado"
+        elif failed:
+            situation = "erro"
+        elif len(found) < len(FORMATS):
+            situation = "incompleto"
+        else:
+            situation = "completo"
+        rows.append({"code": code, "cells": cells, "situation": situation})
+    return rows
 
-    if report.missing:
-        st.markdown(
-            f'<div class="rc-banner rc-banner-warn">'
-            f"<strong>{len(report.missing)} código(s) sem desenho localizado</strong> em "
-            f"{escape_html(report.root)}. Verifique o servidor ou anexe manualmente."
-            f"</div>",
-            unsafe_allow_html=True,
+
+def render_cell(cell: dict) -> str:
+    match = cell["match"]
+    status = cell["status"]
+    if match is None:
+        return '<td class="rc-cell rc-cell-missing">não encontrado</td>'
+    name = escape_html(match.path.name)
+    meta = f"{cl.format_timestamp(match.mtime)} &middot; {cl.human_size(match.size)}"
+    if status == "ignorado":
+        meta += ' &middot; <span class="rc-flag">já existia</span>'
+    elif status == "erro":
+        meta = '<span class="rc-flag rc-flag-bad">falha ao copiar</span>'
+    return (
+        f'<td class="rc-cell"><div class="rc-file">{name}</div>'
+        f'<div class="rc-file-meta">{meta}</div></td>'
+    )
+
+
+def render_table(rows: list[dict]) -> None:
+    body = []
+    for row in rows:
+        situation = row["situation"]
+        if situation == "completo":
+            chip, label = "rc-chip-ok", "completo"
+        elif situation == "incompleto":
+            chip, label = "rc-chip-warn", "falta formato"
+        elif situation == "erro":
+            chip, label = "rc-chip-bad", "erro na cópia"
+        else:
+            chip, label = "rc-chip-bad", "não localizado"
+        cells = "".join(render_cell(cell) for cell in row["cells"])
+        body.append(
+            "<tr>"
+            f'<td class="mono">{escape_html(row["code"])}</td>'
+            f"{cells}"
+            f'<td><span class="rc-chip {chip}">{label}</span></td>'
+            "</tr>"
         )
-    if incomplete:
-        st.markdown(
-            f'<div class="rc-banner rc-banner-warn">'
-            f"<strong>{len(incomplete)} código(s) com apenas um dos tipos de desenho.</strong> "
-            f"Falta {', '.join(sorted(missing_extensions))} de um ou mais itens. "
-            "Confira a lista abaixo antes de anexar."
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-    if not report.missing and not incomplete:
-        st.markdown(
-            '<div class="rc-banner rc-banner-ok"><strong>Todos os códigos foram localizados '
-            "nos dois formatos.</strong> Os desenhos mais recentes de cada item foram copiados.</div>",
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        '<div class="rc-table-wrap"><table class="rc-table">'
+        "<caption>Arquivos por código</caption>"
+        "<thead><tr><th>Código</th><th>PDF</th><th>DXF</th><th>Situação</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>",
+        unsafe_allow_html=True,
+    )
 
-    render_metrics(report)
 
-    if report.missing:
-        st.markdown('<div class="rc-label">Códigos não localizados</div>', unsafe_allow_html=True)
-        st.code("\n".join(report.missing), language=None)
-
-    if incomplete:
-        st.markdown('<div class="rc-label">Códigos incompletos (falta desenho)</div>', unsafe_allow_html=True)
-        lines = [
-            f"{code} — falta {', '.join(cl.extension_label(extension) for extension in extensions)}"
-            for code, extensions in sorted(incomplete.items())
-        ]
-        st.code("\n".join(lines), language=None)
-
-    if report.results:
-        st.markdown('<div class="rc-label">Arquivos selecionados</div>', unsafe_allow_html=True)
-        chip_class = {"copiado": "rc-chip-copiado", "ignorado": "rc-chip-ignorado", "erro": "rc-chip-erro"}
-        rows = []
-        for result in report.results:
-            rows.append(
-                "<tr>"
-                f'<td class="mono">{escape_html(result.code)}</td>'
-                f'<td class="mono">{escape_html(result.source.name)}</td>'
-                f'<td>{cl.format_timestamp(result.source.stat().st_mtime) if result.source.exists() else "-"}</td>'
-                f"<td>{cl.human_size(result.source.stat().st_size) if result.source.exists() else '-'}</td>"
-                f'<td><span class="rc-chip {chip_class.get(result.status, "rc-chip-erro")}">'
-                f"{escape_html(result.status)}</span></td>"
-                "</tr>"
+def collect_pending(report: cl.RCReport) -> list[tuple[str, str, str]]:
+    pending: list[tuple[str, str, str]] = []
+    for code in report.codes:
+        if code in report.missing:
+            pending.append((code, "não localizado no servidor", "bad"))
+        elif code in report.incomplete:
+            missing = ", ".join(
+                cl.extension_label(extension) for extension in report.incomplete[code]
             )
-        st.markdown(
-            '<table class="rc-table"><thead><tr><th>Código</th><th>Arquivo</th>'
-            "<th>Modificado</th><th>Tamanho</th><th>Status</th></tr></thead>"
-            f"<tbody>{''.join(rows)}</tbody></table>",
-            unsafe_allow_html=True,
+            pending.append((code, f"falta {missing}", "warn"))
+    return pending
+
+
+def render_pending(pending: list[tuple[str, str, str]]) -> None:
+    items = "".join(
+        f"<li><code>{escape_html(code)}</code>"
+        f'<span class="rc-pending-note rc-pending-{kind}">{escape_html(note)}</span></li>'
+        for code, note, kind in pending
+    )
+    st.markdown(
+        '<div class="rc-pending">'
+        '<div class="rc-pending-title">Códigos para tratar manualmente</div>'
+        f'<ul class="rc-pending-list">{items}</ul></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_verdict(report: cl.RCReport, rows: list[dict], pending: list[tuple[str, str, str]]) -> None:
+    total = len(report.codes)
+    complete = sum(1 for row in rows if row["situation"] == "completo")
+    failed = sum(1 for row in rows if row["situation"] == "erro")
+
+    if failed:
+        tone = "bad"
+        title = f"RC {report.rc_number} processada com {plural(failed, 'erro de cópia', 'erros de cópia')}"
+    elif pending:
+        tone = "warn"
+        title = f"RC {report.rc_number} processada com {plural(len(pending), 'pendência', 'pendências')}"
+    else:
+        tone = "ok"
+        title = f"RC {report.rc_number} processada"
+
+    summary = [f"{complete} de {total} códigos completos"]
+    if pending:
+        summary.append(plural(len(pending), "código sem desenho completo", "códigos sem desenho completo"))
+    if failed:
+        summary.append(plural(failed, "arquivo falhou na cópia", "arquivos falharam na cópia"))
+
+    details = [
+        f"{plural(len(report.copied), 'arquivo copiado', 'arquivos copiados')} "
+        f"para a Área de Trabalho em {format_seconds(report.elapsed_seconds)}"
+    ]
+    if report.skipped:
+        details.append(
+            plural(len(report.skipped), "arquivo já existia e foi mantido", "arquivos já existiam e foram mantidos")
         )
+
+    st.markdown(
+        f'<div class="rc-verdict rc-verdict-{tone}">'
+        f'<h1 class="rc-verdict-title">{escape_html(title)}</h1>'
+        f'<p class="rc-verdict-body">{escape_html(" · ".join(summary))}</p>'
+        f'<p class="rc-verdict-meta">{escape_html(" · ".join(details))}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_result(report: cl.RCReport) -> None:
+    rows = collect_rows(report)
+    pending = collect_pending(report)
+    render_verdict(report, rows, pending)
+
+    destination = report.destination
+    if destination is not None and destination.exists():
+        if st.button(
+            "Abrir pasta no Explorer",
+            type="primary",
+            width="content",
+            icon=":material/folder_open:",
+        ):
+            try:
+                os.startfile(str(destination))
+            except OSError as exc:
+                st.error(f"Não foi possível abrir a pasta: {exc}")
+
+    if pending:
+        render_pending(pending)
+        st.download_button(
+            "Baixar lista (.txt)",
+            data="\n".join(f"{code} - {note}" for code, note, _kind in pending),
+            file_name=f"codigos-pendentes-RC{report.rc_number}.txt",
+            mime="text/plain",
+            type="secondary",
+            width="content",
+        )
+
+    render_table(rows)
 
     if report.scan_errors:
         with st.expander(f"Falhas de leitura em {len(report.scan_errors)} pasta(s)"):
-            st.code("\n".join(report.scan_errors), language=None)
-
-    st.markdown('<div class="rc-label">Pasta de destino</div>', unsafe_allow_html=True)
-    st.code(str(report.destination), language=None)
-
-    left, right = st.columns(2)
-    with left:
-        if st.button("Abrir pasta no Explorer", type="secondary", disabled=not report.destination.exists()):
-            try:
-                os.startfile(str(report.destination))
-            except OSError as exc:
-                st.error(f"Não foi possível abrir a pasta: {exc}")
-    with right:
-        if st.button("Nova análise", type="primary"):
-            st.session_state.pop("report", None)
-            st.rerun()
+            st.markdown(
+                "<ul>"
+                + "".join(
+                    f"<li>{escape_html(error)}</li>" for error in report.scan_errors
+                )
+                + "</ul>",
+                unsafe_allow_html=True,
+            )
 
     st.markdown(
-        f'<div class="rc-footer">RC {escape_html(report.rc_number)} · {escape_html(report.pdf_name)} · '
-        f"{len(report.results)} arquivo(s) processado(s) em {report.elapsed_seconds:.1f}s · "
-        "origem acessada somente para leitura</div>",
+        '<div class="rc-footer">'
+        '<div class="rc-footer-item"><span class="rc-footer-label">Arquivo</span>'
+        f'<span class="rc-footer-path">{escape_html(report.pdf_name)}</span></div>'
+        '<div class="rc-footer-item"><span class="rc-footer-label">Pasta de destino</span>'
+        f'<span class="rc-footer-path">{escape_html(destination)}</span></div>'
+        "</div>",
         unsafe_allow_html=True,
     )
+    if st.button("Nova análise", type="secondary", width="content"):
+        st.session_state.pop("report", None)
+        st.session_state["upload_seq"] = st.session_state.get("upload_seq", 0) + 1
+        st.rerun()
 
-
-st.markdown(CSS, unsafe_allow_html=True)
-
-st.markdown('<div class="rc-title">Buscador de Desenhos</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="rc-subtitle">Leia a RC, encontre os desenhos mais recentes no servidor '
-    "e organize tudo em uma pasta na sua Área de Trabalho.</div>",
-    unsafe_allow_html=True,
-)
-st.divider()
-
-st.markdown(
-    '<div class="rc-label">01 — Requisição de Compra</div>',
-    unsafe_allow_html=True,
-)
-uploaded = st.file_uploader(
-    "Arraste ou clique para selecionar o PDF da RC",
-    type=["pdf"],
-    label_visibility="collapsed",
-)
-st.markdown(
-    '<div class="rc-caption">Somente arquivos .pdf exportados do ERP.</div>',
-    unsafe_allow_html=True,
-)
-
-saved_root = cl.get_saved_root()
-default_root = saved_root or cl.DEFAULT_DRAWINGS_ROOT
-
-with st.expander("Configurações", expanded=not default_root):
-    root_input = st.text_input(
-        "Pasta de origem (somente leitura)",
-        value=default_root,
-        placeholder=r"\\servidor\Engenharia\Projetos Obras",
-        help="Informe uma vez. O caminho fica salvo nesta máquina e é preenchido automaticamente nas próximas vezes.",
-    )
-    overwrite = st.checkbox("Sobrescrever arquivos já existentes na Área de Trabalho", value=False)
-    force_rescan = st.checkbox(
-        "Forçar nova varredura no servidor (ignora o cache local)",
-        value=False,
-        help="O cache local acelera as próximas buscas. Use esta opção se desenhos novos acabaram de ser publicados.",
-    )
-    full_scan = st.checkbox(
-        "Varrer toda a estrutura (não apenas as pastas COMPRAS)",
-        value=False,
-        help="Por padrão a busca acontece apenas nas pastas COMPRAS Chaparias, COMPRAS Geral e COMPRAS Usinagem.",
-    )
-    if st.button("Testar acesso à pasta", type="secondary"):
-        try:
-            checked = cl.check_drawings_root(root_input)
-            cl.save_drawings_root(checked)
-            st.success("Pasta acessível para leitura. Caminho salvo para as próximas vezes.")
-        except cl.DrawingsRootError as exc:
-            st.error(str(exc))
-
-st.write("")
-run = st.button(
-    "Processar RC",
-    type="primary",
-    disabled=uploaded is None or not root_input.strip(),
-    use_container_width=True,
-)
-pending_hints = []
-if uploaded is None:
-    pending_hints.append("anexe o PDF da RC")
-if not root_input.strip():
-    pending_hints.append("informe a pasta de origem em Configurações")
-if pending_hints:
-    st.markdown(
-        f'<div class="rc-caption" style="text-align:center;">Para liberar o processamento: '
-        f"{' e '.join(pending_hints)}.</div>",
-        unsafe_allow_html=True,
-    )
-
-if run and uploaded is not None:
-    st.session_state.pop("report", None)
-    steps_labels = [
-        "Leitura do PDF da RC",
-        f'Busca no drive "{root_input}"',
-        "Cópia dos desenhos para a Área de Trabalho",
-    ]
-    steps = [(label, "pending") for label in steps_labels]
-    placeholder = st.empty()
-    placeholder.markdown(step_status(steps, 0), unsafe_allow_html=True)
-
-    def progress(message: str, fraction: float) -> None:
-        if fraction <= 0.2:
-            index = 0
-        elif fraction <= 0.7:
-            index = 1
-        else:
-            index = 2
-        updated = []
-        for position, label in enumerate(steps_labels):
-            state = "done" if position < index else "active" if position == index else "pending"
-            updated.append((label, state))
-        placeholder.markdown(step_status(updated, index), unsafe_allow_html=True)
-        detail.write(f"› {message}")
-
-    def scan_progress(count: int) -> None:
-        detail.write(f"› {count:,} arquivos catalogados no servidor".replace(",", "."))
-
-    detail = st.empty()
-    temporary_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-            temp_file.write(uploaded.getbuffer())
-            temporary_path = Path(temp_file.name)
-        report = cl.process_rc(
-            temporary_path,
-            root=root_input,
-            overwrite=overwrite,
-            shop_folders_only=not full_scan,
-            force_rescan=force_rescan,
-            progress=progress,
-            scan_progress=scan_progress,
-        )
-        report.pdf_name = uploaded.name
-        cl.save_drawings_root(root_input)
-        placeholder.markdown(
-            step_status([(label, "done") for label in steps_labels], len(steps_labels)),
-            unsafe_allow_html=True,
-        )
-        detail.empty()
-        st.session_state["report"] = report
-    except cl.DrawingsRootError as exc:
-        detail.empty()
-        placeholder.empty()
-        st.markdown(
-            f'<div class="rc-banner rc-banner-error"><strong>Acesso ao servidor indisponível.</strong><br>'
-            f"{escape_html(exc)}</div>",
-            unsafe_allow_html=True,
-        )
-    except cl.RCParseError as exc:
-        detail.empty()
-        placeholder.empty()
-        st.markdown(
-            f'<div class="rc-banner rc-banner-error"><strong>Falha ao ler a RC.</strong><br>'
-            f"{escape_html(exc)}</div>",
-            unsafe_allow_html=True,
-        )
-    except Exception as exc:
-        detail.empty()
-        placeholder.empty()
-        log_path = cl.log_unexpected_error(exc)
-        st.markdown(
-            f'<div class="rc-banner rc-banner-error"><strong>Erro inesperado durante o processamento.</strong><br>'
-            f"Detalhes técnicos registrados em {escape_html(log_path)}.</div>",
-            unsafe_allow_html=True,
-        )
-    finally:
-        if temporary_path is not None:
-            try:
-                temporary_path.unlink()
-            except OSError:
-                pass
 
 report = st.session_state.get("report")
-if report is not None:
-    st.divider()
-    st.markdown('<div class="rc-label">02 — Resultado</div>', unsafe_allow_html=True)
-    render_results(report)
+
+st.markdown(
+    CSS.replace("__CONTAINER_WIDTH__", "940px" if report is not None else "660px"),
+    unsafe_allow_html=True,
+)
+
+if report is None:
+    st.markdown(
+        '<div class="rc-masthead">'
+        '<h1 class="rc-title">Buscador de Desenhos</h1>'
+        '<p class="rc-subtitle">Leia a RC, encontre os desenhos mais recentes no servidor '
+        "e organize tudo em uma pasta na sua Área de Trabalho.</p></div>",
+        unsafe_allow_html=True,
+    )
+
+    uploaded = st.file_uploader(
+        "Selecionar o PDF da Requisição de Compra",
+        type=["pdf"],
+        label_visibility="collapsed",
+        key=f"rc_pdf_{st.session_state.get('upload_seq', 0)}",
+    )
+    st.markdown(
+        '<div class="rc-caption rc-caption-upload">Arraste o PDF da RC para a área acima ou clique para selecionar. '
+        "Somente arquivos .pdf exportados do ERP.</div>",
+        unsafe_allow_html=True,
+    )
+
+    saved_root = cl.get_saved_root()
+    default_root = saved_root or cl.DEFAULT_DRAWINGS_ROOT
+
+    with st.expander("Configurações", expanded=not default_root):
+        root_input = st.text_input(
+            "Pasta de origem (somente leitura)",
+            value=default_root,
+            placeholder=r"\\servidor\Engenharia\Projetos Obras",
+            help="Informe uma vez. O caminho fica salvo nesta máquina e é preenchido automaticamente nas próximas vezes.",
+        )
+        overwrite = st.checkbox(
+            "Sobrescrever arquivos já existentes na Área de Trabalho", value=False
+        )
+        force_rescan = st.checkbox(
+            "Forçar nova varredura no servidor (ignora o cache local)",
+            value=False,
+            help="O cache local acelera as próximas buscas. Use esta opção se desenhos novos acabaram de ser publicados.",
+        )
+        full_scan = st.checkbox(
+            "Varrer toda a estrutura (não apenas as pastas COMPRAS)",
+            value=False,
+            help="Por padrão a busca acontece apenas nas pastas COMPRAS Chaparias, COMPRAS Geral e COMPRAS Usinagem.",
+        )
+        if st.button("Testar acesso à pasta", type="secondary", width="content"):
+            try:
+                checked = cl.check_drawings_root(root_input)
+                cl.save_drawings_root(checked)
+                st.success("Pasta acessível para leitura. Caminho salvo para as próximas vezes.")
+            except cl.DrawingsRootError as exc:
+                st.error(str(exc))
+
+    st.markdown('<div class="rc-spacer"></div>', unsafe_allow_html=True)
+    run = st.button(
+        "Processar RC",
+        type="primary",
+        disabled=uploaded is None or not root_input.strip(),
+        width="stretch",
+    )
+    pending_hints = []
+    if uploaded is None:
+        pending_hints.append("anexe o PDF da RC")
+    if not root_input.strip():
+        pending_hints.append("informe a pasta de origem em Configurações")
+    if pending_hints:
+        st.markdown(
+            f'<div class="rc-caption" style="text-align:center;">Para liberar o processamento: '
+            f"{' e '.join(pending_hints)}.</div>",
+            unsafe_allow_html=True,
+        )
+
+    if run and uploaded is not None:
+        status = st.status("Lendo o PDF da Requisição de Compra", expanded=False)
+
+        def progress(_message: str, fraction: float) -> None:
+            status.update(label=step_label(fraction))
+
+        def scan_progress(count: int) -> None:
+            status.update(
+                label=f"Varrendo o servidor · {format_count(count)} arquivos catalogados"
+            )
+
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+                temp_file.write(uploaded.getbuffer())
+                temporary_path = Path(temp_file.name)
+            new_report = cl.process_rc(
+                temporary_path,
+                root=root_input,
+                overwrite=overwrite,
+                shop_folders_only=not full_scan,
+                force_rescan=force_rescan,
+                progress=progress,
+                scan_progress=scan_progress,
+            )
+            new_report.pdf_name = uploaded.name
+            cl.save_drawings_root(root_input)
+            status.update(label="Concluído", state="complete")
+            st.session_state["report"] = new_report
+            st.rerun()
+        except cl.DrawingsRootError as exc:
+            status.update(label="Processamento interrompido", state="error")
+            st.markdown(
+                '<div class="rc-verdict rc-verdict-bad">'
+                '<h1 class="rc-verdict-title">Acesso ao servidor indisponível</h1>'
+                f'<p class="rc-verdict-body">{escape_html(exc)}</p></div>',
+                unsafe_allow_html=True,
+            )
+        except cl.RCParseError as exc:
+            status.update(label="Processamento interrompido", state="error")
+            st.markdown(
+                '<div class="rc-verdict rc-verdict-bad">'
+                '<h1 class="rc-verdict-title">Falha ao ler a RC</h1>'
+                f'<p class="rc-verdict-body">{escape_html(exc)}</p></div>',
+                unsafe_allow_html=True,
+            )
+        except Exception as exc:
+            status.update(label="Processamento interrompido", state="error")
+            log_path = cl.log_unexpected_error(exc)
+            st.markdown(
+                '<div class="rc-verdict rc-verdict-bad">'
+                '<h1 class="rc-verdict-title">Erro inesperado durante o processamento</h1>'
+                '<p class="rc-verdict-body">Detalhes técnicos registrados em '
+                f"{escape_html(log_path)}.</p></div>",
+                unsafe_allow_html=True,
+            )
+        finally:
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink()
+                except OSError:
+                    pass
+else:
+    render_result(report)
