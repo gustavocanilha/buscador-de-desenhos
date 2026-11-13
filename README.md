@@ -211,9 +211,46 @@ resultado e não criam pasta vazia.
 
 ## 7. Atualização
 
-- **Instalação via repositório:** baixe novamente (git pull / novo ZIP) e rode `rodar.bat`.
-- **Instalação via `.exe`:** substitua a pasta `dist\BuscadorDeDesenhos` inteira pela versão nova
-  e mantenha o atalho.
+### 7.1. Quem já tem o projeto clonado com Git (forma mais fácil)
+
+1. Feche a janela preta do programa (se estiver aberta).
+2. Abra a pasta do projeto, clique com o botão direito em um espaço vazio e escolha
+   **Abrir no Terminal** (ou **Git Bash Here**).
+3. Rode:
+
+   ```bat
+   git pull
+   ```
+
+4. Dê duplo clique em `rodar.bat`. As dependências são conferidas na hora e a aplicação já abre
+   na versão nova.
+
+Não é preciso clonar de novo, nem apagar nada. O caminho da pasta de origem continua salvo em
+`%LOCALAPPDATA%\BuscadorDeDesenhos\config.json`, fora do repositório, então o `git pull` não
+mexe nele.
+
+Para conferir se atualizou, o botão **Busca avulsa** aparece logo abaixo da área de upload.
+O comando `git log -1 --oneline` mostra a versão atual do projeto.
+
+Se o `git pull` reclamar de arquivos locais modificados, o mais simples é descartar as alterações
+locais dessa cópia (ninguém deveria editar o código nela):
+
+```bat
+git checkout -- .
+git pull
+```
+
+### 7.2. Quem baixou o ZIP (sem Git)
+
+Baixe o ZIP novo em **Code > Download ZIP**, extraia e substitua os arquivos da pasta antiga pelos
+novos (ou use a pasta nova e rode o `rodar.bat` dela). A configuração salva na máquina não é
+afetada.
+
+### 7.3. Instalação via `.exe`
+
+Substitua a pasta `dist\BuscadorDeDesenhos` inteira pela versão nova e mantenha o atalho. O `.exe`
+só recebe a atualização depois de o responsável técnico rodar `build_exe.bat` e redistribuir a
+pasta.
 
 ---
 
