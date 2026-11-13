@@ -110,7 +110,7 @@ foi mantido (a sobrescrita estava desligada); `falha ao copiar` indica erro de l
 1. Clique em **Busca avulsa**, logo abaixo da área de upload.
 2. Cole a lista ou o texto copiado (Ctrl + V). Podem vir códigos um por linha, linhas do Excel,
    nomes de arquivo ou texto corrido.
-3. Clique em **Buscar**. O sistema extrai os códigos nos formatos `1234-ABC-5678` ou `A1.2345`
+3. Clique em **Buscar**. O sistema extrai os códigos nos formatos `1234-ABC-5678` ou `M16.0001`
    e usa exatamente a mesma busca da RC (cache, pastas COMPRAS e versão mais recente).
 4. O resultado aparece na própria tela, com a tabela por código e o botão
    **Abrir pasta no Explorer**.

@@ -23,11 +23,11 @@ DRAWING_EXTENSIONS = (".pdf", ".dxf")
 RC_PATTERN = re.compile(r"RC\s*[:\-]?\s*(\d{2,6})", re.IGNORECASE)
 CODE_PATTERNS = (
     re.compile(r"^\d{3,4}-[A-Z]{3}-\d{4}$"),
-    re.compile(r"^[A-Z]\d\.\d{4}$"),
+    re.compile(r"^[A-Z]{1,2}\d{1,2}\.\d{4}$"),
 )
 TEXT_CODE_PATTERN = re.compile(
     r"\b(\d{3,4})\s*-\s*([A-Z]{3})\s*-\s*(\d{4})\b"
-    r"|\b([A-Z])\s*(\d)\s*\.\s*(\d{4})\b",
+    r"|\b([A-Z]{1,2})\s*(\d{1,2})\s*\.\s*(\d{4})\b",
     re.IGNORECASE,
 )
 ITEM_COLUMN_LIMIT = 60.0
@@ -704,7 +704,7 @@ def process_free_search(
     if not codes:
         raise FreeSearchError(
             "Nenhum codigo reconhecido no texto. Formatos aceitos: "
-            "1234-ABC-5678 e A1.2345."
+            "1234-ABC-5678 e M16.0001."
         )
 
     root_path, matches, missing, scan_errors = _find_drawing_matches(

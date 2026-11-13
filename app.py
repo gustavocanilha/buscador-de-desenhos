@@ -701,11 +701,11 @@ def render_free_search(
         "Cole a lista ou o texto com os códigos",
         key="free_search_text",
         height=170,
-        placeholder="Ex.: 1234-ABC-5678\nA1.2345\nou cole um texto inteiro; os códigos são extraídos automaticamente.",
+        placeholder="Ex.: 1234-ABC-5678\nM16.0001\nou cole um texto inteiro; os códigos são extraídos automaticamente.",
     )
     st.markdown(
         '<div class="rc-caption">Aceita um código por linha, lista do Excel ou texto corrido. '
-        "Formatos: 1234-ABC-5678 e A1.2345.</div>",
+        "Formatos: 1234-ABC-5678 e M16.0001.</div>",
         unsafe_allow_html=True,
     )
 

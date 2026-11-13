@@ -21,6 +21,15 @@ class ExtractCodesTest(unittest.TestCase):
     def test_returns_empty_without_codes(self):
         self.assertEqual(cl.extract_codes_from_text("sem codigo aqui"), [])
 
+    def test_accepts_two_digits_and_two_letters(self):
+        text = "M16.0001\nM17.0022\nM23.0037\nAA5.0033\nM1.0003"
+        self.assertEqual(
+            cl.extract_codes_from_text(text),
+            ["M16.0001", "M17.0022", "M23.0037", "AA5.0033", "M1.0003"],
+        )
+        self.assertTrue(cl.is_valid_code("M16.0001"))
+        self.assertTrue(cl.is_valid_code("AA5.0033"))
+
 
 class FreeSearchTest(unittest.TestCase):
     def test_copies_found_file_to_numbered_result_folder(self):
