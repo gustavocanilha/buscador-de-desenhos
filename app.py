@@ -98,23 +98,24 @@ CSS = """
 <style>
 :root {
     --paper: #ffffff;
-    --ground: #f7f8fa;
-    --ink: #121317;
-    --ink-2: #3f434a;
-    --muted: #64696f;
-    --line: #e6e8ec;
-    --line-2: #d5d9df;
-    --accent: #0b57d0;
-    --accent-2: #0a49ab;
-    --ok-ink: #17663f;
-    --ok-bg: #edf7f1;
-    --ok-line: #cfe6da;
-    --warn-ink: #7a5606;
-    --warn-bg: #fdf6e5;
-    --warn-line: #ecdcb4;
-    --bad-ink: #9c211b;
-    --bad-bg: #fdf1f0;
-    --bad-line: #f1cfcb;
+    --ground: #f7f7f8;
+    --ink: #111214;
+    --ink-2: #3c3f44;
+    --muted: #6b6f76;
+    --line: #e7e8ea;
+    --line-2: #d3d5d9;
+    --accent: #111214;
+    --accent-2: #000000;
+    --info: #0b57d0;
+    --ok-ink: #146c43;
+    --ok-bg: #eef7f1;
+    --ok-line: #c9e3d5;
+    --warn-ink: #8a5a00;
+    --warn-bg: #fbf4e4;
+    --warn-line: #eadcb8;
+    --bad-ink: #b42318;
+    --bad-bg: #fcf0ee;
+    --bad-line: #f0ccc6;
 }
 
 html, body, [class*="css"], .stApp, button, input, textarea, select {
@@ -130,9 +131,9 @@ html, body, [class*="css"], .stApp, button, input, textarea, select {
 }
 hr { border-color: var(--line); margin: 2rem 0; }
 
-::selection { background: rgba(11, 87, 208, 0.18); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-input, textarea { caret-color: var(--accent); }
+::selection { background: rgba(17, 18, 20, 0.12); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+input, textarea { caret-color: var(--ink); }
 html { scrollbar-color: #c9ced6 transparent; }
 
 /* --- masthead ------------------------------------------------------- */
@@ -145,30 +146,46 @@ html { scrollbar-color: #c9ced6 transparent; }
 /* --- upload --------------------------------------------------------- */
 .stApp [data-testid="stFileUploaderDropzone"] {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.45rem;
     border: 1.5px dashed var(--line-2);
     border-radius: 12px;
     background: var(--ground);
-    padding: 1.1rem 1.15rem;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    padding: 1.35rem 1.15rem;
+    transition: border-color 0.15s ease;
 }
-.stApp [data-testid="stFileUploaderDropzone"]:hover { border-color: var(--accent); background: #fbfcff; }
+.stApp [data-testid="stFileUploaderDropzone"]:hover { border-color: var(--ink-2); }
+.stApp [data-testid="stFileUploaderDropzone"]::after {
+    content: "Clique ou arraste para selecionar o arquivo...";
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.4;
+    text-align: center;
+}
 .stApp [data-testid="stFileUploaderDropzone"] button {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
     padding: 0 !important;
-    border-radius: 12px !important;
-    background: var(--paper) !important;
-    border: 1px solid var(--line-2) !important;
-    box-shadow: 0 1px 2px rgba(18, 19, 23, 0.05) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
-.stApp [data-testid="stFileUploaderDropzone"] button:hover { border-color: var(--accent) !important; }
+.stApp [data-testid="stFileUploaderDropzone"] button:hover {
+    background: transparent !important;
+    border-color: transparent !important;
+}
 .stApp [data-testid="stFileUploaderDropzone"] button p { display: none; }
 .stApp [data-testid="stFileUploaderDropzone"] button [data-testid="stIconMaterial"] {
-    font-size: 24px;
-    color: var(--accent);
+    font-size: 22px;
+    color: var(--muted);
+    transition: color 0.15s ease;
+}
+.stApp [data-testid="stFileUploaderDropzone"] button:hover [data-testid="stIconMaterial"] {
+    color: var(--ink);
 }
 .stApp [data-testid="stFileUploaderDropzoneInstructions"] { display: none; }
 .stApp [data-testid="stFileUploaderDropzone"]:has(> div:has(> span)) {
@@ -186,7 +203,7 @@ html { scrollbar-color: #c9ced6 transparent; }
     background: var(--paper);
 }
 [data-testid="stExpander"] summary { font-size: 0.87rem; font-weight: 600; color: var(--ink); }
-[data-testid="stExpander"] summary:hover { color: var(--accent); }
+[data-testid="stExpander"] summary:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 [data-testid="stTextInput"] input {
     border: 1px solid var(--line-2);
     border-radius: 8px;
@@ -194,8 +211,8 @@ html { scrollbar-color: #c9ced6 transparent; }
     padding: 0.48rem 0.65rem;
 }
 [data-testid="stTextInput"] input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.14);
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(17, 18, 20, 0.1);
     outline: none;
 }
 [data-testid="stCheckbox"] label { font-size: 0.86rem; color: var(--ink-2); }
@@ -244,21 +261,22 @@ html { scrollbar-color: #c9ced6 transparent; }
 }
 
 /* --- progress ------------------------------------------------------- */
-[data-testid="stExpanderIconSpinner"] { color: var(--accent); }
+[data-testid="stExpanderIconSpinner"] { color: var(--info); }
 [data-testid="stExpanderIconError"] { color: var(--bad-ink); }
 [data-testid="stExpanderIconCheck"] { color: var(--ok-ink); }
 
 /* --- result --------------------------------------------------------- */
 .rc-verdict {
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-left: 3px solid var(--ink);
+    border-radius: 10px;
     padding: 1.1rem 1.25rem;
     margin: 0 0 1.1rem 0;
     background: var(--paper);
 }
-.rc-verdict-ok { background: var(--ok-bg); border-color: var(--ok-line); }
-.rc-verdict-warn { background: var(--warn-bg); border-color: var(--warn-line); }
-.rc-verdict-bad { background: var(--bad-bg); border-color: var(--bad-line); }
+.rc-verdict-ok { border-left-color: var(--ok-ink); }
+.rc-verdict-warn { border-left-color: var(--warn-ink); }
+.rc-verdict-bad { border-left-color: var(--bad-ink); }
 .stApp .rc-verdict-title { font-size: 1.22rem; font-weight: 700; margin: 0 0 0.35rem 0; line-height: 1.25; }
 .rc-verdict-body { font-size: 0.92rem; color: var(--ink); margin: 0 0 0.3rem 0; line-height: 1.5; }
 .rc-verdict-meta { font-size: 0.8rem; color: var(--muted); margin: 0; line-height: 1.5; }
@@ -269,12 +287,13 @@ html { scrollbar-color: #c9ced6 transparent; }
     font-weight: 600;
     letter-spacing: 0.04em;
     padding: 0.18rem 0.55rem;
+    border: 1px solid transparent;
     border-radius: 999px;
     white-space: nowrap;
 }
-.rc-chip-ok { background: var(--ok-bg); color: var(--ok-ink); }
-.rc-chip-warn { background: var(--warn-bg); color: var(--warn-ink); }
-.rc-chip-bad { background: var(--bad-bg); color: var(--bad-ink); }
+.rc-chip-ok { background: var(--ok-bg); color: var(--ok-ink); border-color: var(--ok-line); }
+.rc-chip-warn { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--warn-line); }
+.rc-chip-bad { background: var(--bad-bg); color: var(--bad-ink); border-color: var(--bad-line); }
 
 .rc-pending { margin: 1.6rem 0 0.5rem 0; }
 .rc-pending-title { font-size: 0.86rem; font-weight: 600; color: var(--ink); margin: 0 0 0.5rem 0; }
@@ -321,7 +340,7 @@ html { scrollbar-color: #c9ced6 transparent; }
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-    background: var(--ground);
+    background: transparent;
     padding: 0.5rem 0.7rem;
     border-bottom: 1px solid var(--line-2);
     white-space: nowrap;
@@ -332,6 +351,7 @@ html { scrollbar-color: #c9ced6 transparent; }
 .rc-table td.rc-cell-missing { color: var(--muted); font-size: 0.8rem; }
 .rc-file { font-family: Consolas, "Courier New", monospace; font-size: 0.76rem; overflow-wrap: anywhere; color: var(--ink); }
 .rc-file-meta { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
+.rc-flag { color: var(--info); }
 .rc-flag-bad { color: var(--bad-ink); }
 
 .rc-footer {

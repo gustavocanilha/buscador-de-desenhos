@@ -213,7 +213,8 @@ minutos.
 
 ```
 .
-├── app.py               # Interface Streamlit (preto e branco com acento azul, favicon próprio)
+├── app.py               # Interface Streamlit (preto e branco, com cores apenas em status)
+├── .streamlit/config.toml # Tema claro e neutro dos componentes do Streamlit
 ├── core_logic.py        # Leitura da RC, varredura do servidor, seleção da versão recente e cópia
 ├── launcher.py          # Ponto de entrada do executável gerado pelo PyInstaller
 ├── requirements.txt     # Dependências com versões limitadas

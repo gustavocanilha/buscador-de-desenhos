@@ -23,6 +23,12 @@ def main() -> None:
         "--server.enableXsrfProtection=true",
         "--server.maxUploadSize=25",
         "--browser.gatherUsageStats=false",
+        "--theme.base=light",
+        "--theme.primaryColor=#111214",
+        "--theme.backgroundColor=#ffffff",
+        "--theme.secondaryBackgroundColor=#f7f7f8",
+        "--theme.textColor=#111214",
+        "--theme.font=sans serif",
     ]
     sys.exit(stcli.main())
 
