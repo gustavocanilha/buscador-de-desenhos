@@ -25,6 +25,11 @@ CODE_PATTERNS = (
     re.compile(r"^\d{3,4}-[A-Z]{3}-\d{4}$"),
     re.compile(r"^[A-Z]\d\.\d{4}$"),
 )
+TEXT_CODE_PATTERN = re.compile(
+    r"\b(\d{3,4})\s*-\s*([A-Z]{3})\s*-\s*(\d{4})\b"
+    r"|\b([A-Z])\s*(\d)\s*\.\s*(\d{4})\b",
+    re.IGNORECASE,
+)
 ITEM_COLUMN_LIMIT = 60.0
 CODE_COLUMN_LEFT = 60.0
 CODE_COLUMN_RIGHT = 130.0
@@ -45,6 +50,10 @@ class DrawingsRootError(Exception):
 
 
 class RCParseError(Exception):
+    pass
+
+
+class FreeSearchError(Exception):
     pass
 
 
@@ -271,6 +280,21 @@ def extract_rc_data(pdf_path: str | Path) -> tuple[str, list[str]]:
         raise RCParseError("Nenhum codigo de produto foi identificado no PDF da RC.")
 
     return rc_number, unique_codes
+
+
+def extract_codes_from_text(text: str) -> list[str]:
+    """Extrai codigos de um texto livre, na ordem em que aparecem e sem repetir."""
+    codes: list[str] = []
+    seen: set[str] = set()
+    for match in TEXT_CODE_PATTERN.finditer(text):
+        if match.group(1):
+            code = f"{match.group(1)}-{match.group(2).upper()}-{match.group(3)}"
+        else:
+            code = f"{match.group(4).upper()}{match.group(5)}.{match.group(6)}"
+        if code not in seen:
+            seen.add(code)
+            codes.append(code)
+    return codes
 
 
 def _cache_path(root: Path) -> Path:
@@ -524,6 +548,15 @@ def _safe_destination_name(rc_number: str) -> str:
     return f"Desenhos [RC {sanitized}]"
 
 
+def _next_result_destination(desktop_dir: Path) -> Path:
+    candidate = desktop_dir / "Resultado"
+    index = 2
+    while candidate.exists():
+        candidate = desktop_dir / f"Resultado ({index})"
+        index += 1
+    return candidate
+
+
 def _assert_destination_outside_root(destination: Path, root: Path) -> None:
     try:
         destination.resolve().relative_to(root.resolve())
@@ -568,12 +601,40 @@ def copy_matches(
                 )
                 continue
             try:
+                # A origem e somente leitura: copy2 le o arquivo e grava apenas no destino.
                 shutil.copy2(match.path, target)
             except (FileNotFoundError, PermissionError, OSError) as exc:
                 results.append(CopyResult(code, match.path, target, "erro", str(exc)))
                 continue
             results.append(CopyResult(code, match.path, target, "copiado"))
     return results
+
+
+def _find_drawing_matches(
+    codes: Sequence[str],
+    root: str | Path,
+    shop_folders_only: bool,
+    cache_ttl: int,
+    force_rescan: bool,
+    notify: Callable[[str, float], None],
+    scan_progress: ScanProgressCallback | None,
+) -> tuple[Path, dict[str, dict[str, DrawingMatch]], list[str], list[str]]:
+    notify("Verificando acesso a pasta de origem", 0.15)
+    root_path = check_drawings_root(root)
+
+    notify("Varrendo os desenhos no servidor", 0.2)
+    indexed_files, scan_errors = list_drawing_files(
+        root_path,
+        folder_prefixes=SHOP_FOLDER_PREFIXES if shop_folders_only else (),
+        cache_ttl=cache_ttl,
+        force_rescan=force_rescan,
+        on_progress=scan_progress,
+    )
+
+    notify("Selecionando as versoes mais recentes", 0.7)
+    matches = match_codes(codes, indexed_files)
+    missing = [code for code in codes if not matches.get(code)]
+    return root_path, matches, missing, scan_errors
 
 
 def process_rc(
@@ -596,21 +657,9 @@ def process_rc(
     notify("Lendo o PDF da RC", 0.05)
     rc_number, codes = extract_rc_data(pdf_path)
 
-    notify("Verificando acesso a pasta de origem", 0.15)
-    root_path = check_drawings_root(root)
-
-    notify("Varrendo os desenhos no servidor", 0.2)
-    indexed_files, scan_errors = list_drawing_files(
-        root_path,
-        folder_prefixes=SHOP_FOLDER_PREFIXES if shop_folders_only else (),
-        cache_ttl=cache_ttl,
-        force_rescan=force_rescan,
-        on_progress=scan_progress,
+    root_path, matches, missing, scan_errors = _find_drawing_matches(
+        codes, root, shop_folders_only, cache_ttl, force_rescan, notify, scan_progress
     )
-
-    notify("Selecionando as versoes mais recentes", 0.7)
-    matches = match_codes(codes, indexed_files)
-    missing = [code for code in codes if not matches.get(code)]
 
     destination = (desktop_dir or get_desktop_dir()) / _safe_destination_name(rc_number)
     _assert_destination_outside_root(destination, root_path)
@@ -622,6 +671,58 @@ def process_rc(
     return RCReport(
         rc_number=rc_number,
         pdf_name=Path(pdf_path).name,
+        root=root_path,
+        destination=destination,
+        codes=codes,
+        matches=matches,
+        missing=missing,
+        results=results,
+        scan_errors=scan_errors,
+        elapsed_seconds=(datetime.now() - start).total_seconds(),
+    )
+
+
+def process_free_search(
+    text: str,
+    root: str | Path = DEFAULT_DRAWINGS_ROOT,
+    desktop_dir: Path | None = None,
+    overwrite: bool = False,
+    shop_folders_only: bool = True,
+    cache_ttl: int = CACHE_TTL_SECONDS,
+    force_rescan: bool = False,
+    progress: ProgressCallback | None = None,
+    scan_progress: ScanProgressCallback | None = None,
+) -> RCReport:
+    start = datetime.now()
+
+    def notify(message: str, fraction: float) -> None:
+        if progress is not None:
+            progress(message, fraction)
+
+    notify("Identificando os codigos no texto", 0.05)
+    codes = extract_codes_from_text(text)
+    if not codes:
+        raise FreeSearchError(
+            "Nenhum codigo reconhecido no texto. Formatos aceitos: "
+            "1234-ABC-5678 e A1.2345."
+        )
+
+    root_path, matches, missing, scan_errors = _find_drawing_matches(
+        codes, root, shop_folders_only, cache_ttl, force_rescan, notify, scan_progress
+    )
+
+    destination: Path | None = None
+    results: list[CopyResult] = []
+    if matches:
+        destination = _next_result_destination(desktop_dir or get_desktop_dir())
+        _assert_destination_outside_root(destination, root_path)
+        notify("Copiando os arquivos encontrados", 0.8)
+        results = copy_matches(matches, destination, overwrite=overwrite)
+
+    notify("Concluido", 1.0)
+    return RCReport(
+        rc_number="",
+        pdf_name="",
         root=root_path,
         destination=destination,
         codes=codes,

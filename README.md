@@ -105,6 +105,23 @@ A coluna **Situação** da tabela resume a situação de cada código:
 Dentro da célula do arquivo, `já existia` indica que o arquivo já estava na pasta de destino e
 foi mantido (a sobrescrita estava desligada); `falha ao copiar` indica erro de leitura ou escrita.
 
+### Busca avulsa (sem PDF)
+
+1. Clique em **Busca avulsa**, logo abaixo da área de upload.
+2. Cole a lista ou o texto copiado (Ctrl + V). Podem vir códigos um por linha, linhas do Excel,
+   nomes de arquivo ou texto corrido.
+3. Clique em **Buscar**. O sistema extrai os códigos nos formatos `1234-ABC-5678` ou `A1.2345`
+   e usa exatamente a mesma busca da RC (cache, pastas COMPRAS e versão mais recente).
+4. O resultado aparece na própria tela, com a tabela por código e o botão
+   **Abrir pasta no Explorer**.
+5. Os arquivos vão para uma pasta nova na Área de Trabalho: `Resultado` na primeira busca,
+   depois `Resultado (2)`, `Resultado (3)`... Se nenhum arquivo for localizado, nenhuma pasta
+   é criada.
+
+A busca avulsa respeita as opções de **Configurações** (pasta de origem, sobrescrever,
+forçar nova varredura e varrer toda a estrutura). Texto sem nenhum código reconhecível é
+bloqueado com uma mensagem; nomes puros sem código não são pesquisados.
+
 ---
 
 ## 4. Configurações da interface
@@ -152,6 +169,14 @@ usuário digitar outro caminho e salvar, o valor salvo passa a valer.
    código, vale a de **data de modificação mais recente** (`st_mtime`).
 4. Os arquivos escolhidos são copiados com `shutil.copy2` para
    `Área de Trabalho\Desenhos [RC {número}]`.
+
+### Busca avulsa
+
+O texto colado é lido por expressões regulares que reconhecem os mesmos formatos de código da RC.
+Os códigos são deduplicados e passam pelo mesmo indexador (`list_drawing_files` + `match_codes`)
+e pela mesma cópia (`copy_matches`) usados no processamento da RC. Cada busca cria uma pasta
+`Resultado`, `Resultado (2)`, ... na Área de Trabalho; códigos não localizados aparecem no
+resultado e não criam pasta vazia.
 
 ### Desempenho e cache
 
@@ -216,6 +241,7 @@ minutos.
 ├── app.py               # Interface Streamlit (preto e branco, com cores apenas em status)
 ├── .streamlit/config.toml # Tema claro e neutro dos componentes do Streamlit
 ├── core_logic.py        # Leitura da RC, varredura do servidor, seleção da versão recente e cópia
+├── test_core_logic.py   # Testes da extração de códigos e da busca avulsa
 ├── launcher.py          # Ponto de entrada do executável gerado pelo PyInstaller
 ├── requirements.txt     # Dependências com versões limitadas
 ├── rodar.bat            # Instala dependências e inicia a aplicação

@@ -20,6 +20,14 @@ STEPS = (
     (0.81, "Copiando os desenhos para a Área de Trabalho"),
     (1.01, "Concluído"),
 )
+FREE_STEPS = (
+    (0.06, "Identificando os códigos no texto"),
+    (0.16, "Verificando o acesso à pasta de origem"),
+    (0.21, "Varrendo os desenhos no servidor"),
+    (0.71, "Selecionando as versões mais recentes"),
+    (0.81, "Copiando os desenhos para a Área de Trabalho"),
+    (1.01, "Concluído"),
+)
 
 
 def build_page_icon(size: int = 256) -> Image.Image:
@@ -387,9 +395,9 @@ def plural(count: int, singular: str, many: str) -> str:
     return f"{format_count(count)} {singular if count == 1 else many}"
 
 
-def step_label(fraction: float) -> str:
-    label = STEPS[0][1]
-    for threshold, text in STEPS:
+def step_label(fraction: float, steps=STEPS) -> str:
+    label = steps[0][1]
+    for threshold, text in steps:
         if fraction <= threshold:
             label = text
             break
@@ -535,23 +543,200 @@ def render_verdict(report: cl.RCReport, rows: list[dict], pending: list[tuple[st
     )
 
 
+def clear_free_search() -> None:
+    st.session_state.pop("free_report", None)
+    st.session_state["free_search_text"] = ""
+
+
+def render_error_block(title: str, body: str) -> None:
+    st.markdown(
+        '<div class="rc-verdict rc-verdict-bad">'
+        f'<h1 class="rc-verdict-title">{escape_html(title)}</h1>'
+        f'<p class="rc-verdict-body">{escape_html(body)}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_open_folder(destination: Path | None) -> None:
+    if destination is None or not destination.exists():
+        return
+    if st.button(
+        "Abrir pasta no Explorer",
+        type="primary",
+        width="content",
+        icon=":material/folder_open:",
+    ):
+        try:
+            os.startfile(str(destination))
+        except OSError as exc:
+            st.error(f"Não foi possível abrir a pasta: {exc}")
+
+
+def render_free_result(report: cl.RCReport) -> None:
+    rows = collect_rows(report)
+    pending = collect_pending(report)
+    total = len(report.codes)
+    complete = sum(1 for row in rows if row["situation"] == "completo")
+    failed = sum(1 for row in rows if row["situation"] == "erro")
+    copied = len(report.copied)
+    skipped = len(report.skipped)
+    missing = len(report.missing)
+
+    if failed:
+        tone = "bad"
+        title = f"Busca avulsa concluída com {plural(failed, 'erro de cópia', 'erros de cópia')}"
+    elif pending:
+        tone = "warn"
+        title = f"Busca avulsa concluída com {plural(len(pending), 'pendência', 'pendências')}"
+    else:
+        tone = "ok"
+        title = "Busca avulsa concluída"
+
+    summary = [f"{complete} de {total} códigos completos"]
+    if copied:
+        summary.append(plural(copied, "arquivo copiado", "arquivos copiados"))
+    if skipped:
+        summary.append(plural(skipped, "arquivo já existia", "arquivos já existiam"))
+    if missing:
+        summary.append(plural(missing, "código não localizado", "códigos não localizados"))
+    if failed:
+        summary.append(plural(failed, "arquivo falhou na cópia", "arquivos falharam na cópia"))
+
+    if report.destination is None:
+        detail = "Nenhum arquivo localizado; nenhuma pasta foi criada na Área de Trabalho"
+    else:
+        detail = "Pasta de destino criada na Área de Trabalho"
+
+    st.markdown(
+        f'<div class="rc-verdict rc-verdict-{tone}">'
+        f'<h1 class="rc-verdict-title">{escape_html(title)}</h1>'
+        f'<p class="rc-verdict-body">{escape_html(" · ".join(summary))}</p>'
+        f'<p class="rc-verdict-meta">{escape_html(detail + " · " + format_seconds(report.elapsed_seconds))}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+    render_open_folder(report.destination)
+    if pending:
+        render_pending(pending)
+    render_table(rows)
+
+    destination_label = (
+        str(report.destination) if report.destination is not None else "não criada (nenhum arquivo localizado)"
+    )
+    st.markdown(
+        '<div class="rc-footer">'
+        '<div class="rc-footer-item"><span class="rc-footer-label">Códigos reconhecidos</span>'
+        f'<span class="rc-footer-path">{escape_html(format_count(total))}</span></div>'
+        '<div class="rc-footer-item"><span class="rc-footer-label">Pasta de destino</span>'
+        f'<span class="rc-footer-path">{escape_html(destination_label)}</span></div>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    st.button("Limpar busca", type="secondary", width="content", on_click=clear_free_search)
+
+
+def run_free_search(
+    text: str,
+    root_input: str,
+    overwrite: bool,
+    force_rescan: bool,
+    full_scan: bool,
+) -> None:
+    st.session_state.pop("free_report", None)
+    status = st.status("Identificando os códigos no texto", expanded=False)
+
+    def progress(_message: str, fraction: float) -> None:
+        status.update(label=step_label(fraction, FREE_STEPS))
+
+    def scan_progress(count: int) -> None:
+        status.update(label=f"Varrendo o servidor · {format_count(count)} arquivos catalogados")
+
+    try:
+        report = cl.process_free_search(
+            text,
+            root=root_input,
+            overwrite=overwrite,
+            shop_folders_only=not full_scan,
+            force_rescan=force_rescan,
+            progress=progress,
+            scan_progress=scan_progress,
+        )
+        cl.save_drawings_root(root_input)
+        status.update(label="Concluído", state="complete")
+        st.session_state["free_report"] = report
+        st.rerun()
+    except cl.FreeSearchError as exc:
+        status.update(label="Busca interrompida", state="error")
+        render_error_block("Nenhum código reconhecido", str(exc))
+    except cl.DrawingsRootError as exc:
+        status.update(label="Busca interrompida", state="error")
+        render_error_block("Acesso ao servidor indisponível", str(exc))
+    except Exception as exc:
+        status.update(label="Busca interrompida", state="error")
+        log_path = cl.log_unexpected_error(exc)
+        render_error_block(
+            "Erro inesperado durante a busca",
+            f"Detalhes técnicos registrados em {log_path}.",
+        )
+
+
+def render_free_search(
+    root_input: str,
+    overwrite: bool,
+    force_rescan: bool,
+    full_scan: bool,
+) -> None:
+    if st.button(
+        "Busca avulsa",
+        type="secondary",
+        width="content",
+        icon=":material/search:",
+    ):
+        st.session_state["free_search_open"] = not st.session_state.get("free_search_open", False)
+
+    if not st.session_state.get("free_search_open", False):
+        return
+
+    text = st.text_area(
+        "Cole a lista ou o texto com os códigos",
+        key="free_search_text",
+        height=170,
+        placeholder="Ex.: 1234-ABC-5678\nA1.2345\nou cole um texto inteiro; os códigos são extraídos automaticamente.",
+    )
+    st.markdown(
+        '<div class="rc-caption">Aceita um código por linha, lista do Excel ou texto corrido. '
+        "Formatos: 1234-ABC-5678 e A1.2345.</div>",
+        unsafe_allow_html=True,
+    )
+
+    search = st.button(
+        "Buscar",
+        type="primary",
+        width="stretch",
+        disabled=not text.strip() or not root_input.strip(),
+    )
+    if not root_input.strip():
+        st.markdown(
+            '<div class="rc-caption" style="text-align:center;">'
+            "Para liberar a busca: informe a pasta de origem em Configurações.</div>",
+            unsafe_allow_html=True,
+        )
+
+    if search:
+        run_free_search(text, root_input, overwrite, force_rescan, full_scan)
+
+    report = st.session_state.get("free_report")
+    if report is not None:
+        render_free_result(report)
+
+
 def render_result(report: cl.RCReport) -> None:
     rows = collect_rows(report)
     pending = collect_pending(report)
     render_verdict(report, rows, pending)
 
     destination = report.destination
-    if destination is not None and destination.exists():
-        if st.button(
-            "Abrir pasta no Explorer",
-            type="primary",
-            width="content",
-            icon=":material/folder_open:",
-        ):
-            try:
-                os.startfile(str(destination))
-            except OSError as exc:
-                st.error(f"Não foi possível abrir a pasta: {exc}")
+    render_open_folder(destination)
 
     if pending:
         render_pending(pending)
@@ -588,6 +773,7 @@ def render_result(report: cl.RCReport) -> None:
     )
     if st.button("Nova análise", type="secondary", width="content"):
         st.session_state.pop("report", None)
+        st.session_state.pop("free_report", None)
         st.session_state["upload_seq"] = st.session_state.get("upload_seq", 0) + 1
         st.rerun()
 
@@ -614,6 +800,7 @@ if report is None:
         label_visibility="collapsed",
         key=f"rc_pdf_{st.session_state.get('upload_seq', 0)}",
     )
+    free_search_slot = st.container()
 
     saved_root = cl.get_saved_root()
     default_root = saved_root or cl.DEFAULT_DRAWINGS_ROOT
@@ -646,6 +833,9 @@ if report is None:
             except cl.DrawingsRootError as exc:
                 st.error(str(exc))
 
+    with free_search_slot:
+        render_free_search(root_input, overwrite, force_rescan, full_scan)
+
     st.markdown('<div class="rc-spacer"></div>', unsafe_allow_html=True)
     run = st.button(
         "Processar RC",
@@ -666,6 +856,7 @@ if report is None:
         )
 
     if run and uploaded is not None:
+        st.session_state.pop("free_report", None)
         status = st.status("Lendo o PDF da Requisição de Compra", expanded=False)
 
         def progress(_message: str, fraction: float) -> None:
